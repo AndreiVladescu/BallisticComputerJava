@@ -124,6 +124,7 @@ public class Main {
             frame.setSize(1000, 500);
             frame.setVisible(true);
         });
+
     }
 
     public static void main(String[] args) {
@@ -133,7 +134,24 @@ public class Main {
     private static void updateInformation() {
         int numRows = tableModel.getRowCount();
         infoLabel.setText("Ballistic Entries: " + numRows);
-        esLabel.setText("Extreme Spread: " + EquationCalculator.computeExtremeSpread(ballisticEntries) + "mm");
+        SwingWorker<Double, Void> workerES = new SwingWorker<Double, Void>() {
+            @Override
+            protected Double doInBackground() throws Exception {
+                return EquationCalculator.computeExtremeSpread(ballisticEntries);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double extremeSpread = get();
+                    esLabel.setText("Extreme Spread: " + extremeSpread + "mm");
+                } catch (Exception e) {
+                    e.printStackTrace(); // Handle exception
+                }
+            }
+        };
+        workerES.execute();
+        //esLabel.setText("Extreme Spread: " + EquationCalculator.computeExtremeSpread(ballisticEntries) + "mm");
         stdLabel.setText("Standard Deviation: " + EquationCalculator.computeStandardDerivation(ballisticEntries) + "mm");
 
     }
@@ -173,6 +191,14 @@ public class Main {
 
             // Horizontal line
             g.drawLine(0, centerY, getWidth(), centerY);
+
+            //TODO Circumscribed Circle - In progress
+            ArrayList<Float> circumscribedCircle = EquationCalculator.getCircumscribedCircle(ballisticEntries);
+
+            if (!circumscribedCircle.isEmpty())
+                g.drawOval(Math.round((float)getWidth() / 2 + circumscribedCircle.get(0)),
+                        Math.round((float)getHeight() / 2 - circumscribedCircle.get(2) + circumscribedCircle.get(1)),
+                        Math.round(circumscribedCircle.get(2) * 2), Math.round(circumscribedCircle.get(2) * 2));
 
             // Draw mini red circles based on table coordinates
             int numRows = tableModel.getRowCount();

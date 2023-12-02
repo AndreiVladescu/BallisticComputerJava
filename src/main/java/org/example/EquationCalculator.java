@@ -1,6 +1,7 @@
 package org.example;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.javatuples.Pair; // Import the necessary class from the javatuples library
 
@@ -36,7 +37,7 @@ public class EquationCalculator {
         double sumOfSquaredDifferences = 0.0;
 
         for (Pair<Float, Float> point : ballisticEntries) {
-            float distance = calculateDistance(point, Pair.with(centroidX, centroidY));
+            float distance = (float) calculateDistance(point, Pair.with(centroidX, centroidY));
             float difference = (float) (distance - computeExtremeSpread(ballisticEntries));
             sumOfSquaredDifferences += difference * difference;
         }
@@ -46,25 +47,46 @@ public class EquationCalculator {
 
         return round(standardDerivation,4);
     }
+    /* Stream Calculations */
     public static double computeExtremeSpread(List<Pair<Float, Float>> ballisticEntries) {
         if (ballisticEntries.isEmpty())
             return 0.0;
 
-        double maxDist = 0;
+        return round(ballisticEntries.stream()
+                .flatMap(i -> ballisticEntries.stream()
+                        .filter(j -> !i.equals(j))
+                        .map(j -> calculateDistance(i, j)))
+                .max(Double::compare)
+                .orElse(0.0),3) ;
+    }public static ArrayList<Float> getCircumscribedCircle(List<Pair<Float, Float>> ballisticEntries) {
+        if (ballisticEntries.isEmpty())
+            return new ArrayList<>();
 
-        for (int i = 0; i < ballisticEntries.size() - 1;i++) {
-            for (int j= i + 1; j < ballisticEntries.size() ; j++){
+        double maxDist = 0;
+        int point1 = 0, point2 = 0;
+        for (int i = 0; i < ballisticEntries.size() - 1; i++) {
+            for (int j = i + 1; j < ballisticEntries.size(); j++) {
                 double delta1 = (ballisticEntries.get(i).getValue0() - ballisticEntries.get(j).getValue0());
                 double delta2 = (ballisticEntries.get(i).getValue1() - ballisticEntries.get(j).getValue1());
                 double distance = Math.sqrt(delta1 * delta1 + delta2 * delta2);
-                if (maxDist < distance){
+                if (maxDist < distance) {
                     maxDist = distance;
+                    point1 = i;
+                    point2 = j;
                 }
             }
         }
-        //System.out.println(round(maxDist, 4));
-        return round(maxDist, 4);
+
+        float x, y, radius;
+        //x = (ballisticEntries.get(point1).getValue0() + ballisticEntries.get(point2).getValue0()) / 2;
+        x = Math.min(ballisticEntries.get(point2).getValue0(), ballisticEntries.get(point1).getValue0());
+        //y = (ballisticEntries.get(point1).getValue1() + ballisticEntries.get(point2).getValue1()) / 2;
+        y = Math.min(ballisticEntries.get(point2).getValue1(), ballisticEntries.get(point1).getValue1());
+        radius = (float) (maxDist / 2);
+        return new ArrayList<>(Arrays.asList(x, y, radius));
     }
+
+
     /* Helper Functions */
     private static double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
@@ -74,7 +96,7 @@ public class EquationCalculator {
         long tmp = Math.round(value);
         return (double) tmp / factor;
     }
-    private static float calculateDistance(Pair<Float, Float> point1, Pair<Float, Float> point2) {
+    private static double calculateDistance(Pair<Float, Float> point1, Pair<Float, Float> point2) {
         float deltaX = point1.getValue0() - point2.getValue0();
         float deltaY = point1.getValue1() - point2.getValue1();
         return (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
