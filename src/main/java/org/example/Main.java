@@ -3,6 +3,7 @@ package org.example;
 import org.javatuples.Pair;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
+    private static final List<Pair<Float, Float>> ballisticEntries = new ArrayList<>();
     private static DefaultTableModel tableModel;  // Declare the table model as a class variable
     private static JFrame frame;
     private static JPanel leftPanel;
@@ -23,10 +25,12 @@ public class Main {
     private static JLabel stdLabel;
     private static JButton addRowButton;
     private static JButton deleteRowButton;
-    private static DrawingPanel drawingPanel;
-    private static List<Pair<Float, Float>> ballisticEntries = new ArrayList<>();
+    private static JButton exportToCSVButton;
+    private static JButton exportToTXTButton;
 
-    private static void initUI(){
+    private static DrawingPanel drawingPanel;
+
+    private static void initUI() {
         SwingUtilities.invokeLater(() -> {
             frame = new JFrame("Ballistic Computer");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -57,65 +61,62 @@ public class Main {
 
             /* Labels */
             infoLabel = new JLabel("Ballistic Entries: 0");
-            esLabel = new JLabel("Extreme spread: 0.0mm");
-            stdLabel = new JLabel("Standard Deviation: 0.0mm");
+            esLabel = new JLabel("Extreme spread: 0.0 mm");
+            stdLabel = new JLabel("Average Deviation: 0.0 mm");
+
+            int labelVerticalSpacing = 4;
+            EmptyBorder labelBorder = new EmptyBorder(labelVerticalSpacing, 0, labelVerticalSpacing, 0);
+
+            infoLabel.setBorder(labelBorder);
+            esLabel.setBorder(labelBorder);
+            stdLabel.setBorder(labelBorder);
+
             leftPanel.add(infoLabel);
             leftPanel.add(esLabel);
             leftPanel.add(stdLabel);
 
             addRowButton = new JButton("Add New Entry");
+            addRowButton.addActionListener(e -> addNewRow());
 
-            addRowButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    addNewRow();
-                }
-            });
             leftPanel.add(addRowButton);
 
             deleteRowButton = new JButton("Delete Selected Entry");
-            deleteRowButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    deleteSelectedRow(table);
-                }
-            });
+            deleteRowButton.addActionListener(e -> deleteSelectedRow(table));
+
             leftPanel.add(deleteRowButton);
+
+            exportToCSVButton = new JButton("Export To CSV");
+            exportToTXTButton = new JButton("Export To TXT");
+
+            leftPanel.add(exportToCSVButton);
+            leftPanel.add(exportToTXTButton);
+
+            exportToCSVButton.addActionListener(e -> exportData("csv"));
+            exportToTXTButton.addActionListener(e -> exportData("txt"));
 
             drawingPanel = new DrawingPanel();
             drawingPanel.setSize(400, 400);
-
 
             frame.add(leftPanel, BorderLayout.WEST);
             frame.add(drawingPanel, BorderLayout.EAST);
             frame.add(new JScrollPane(table), BorderLayout.CENTER);
 
-            // Add a mouse listener to the table to detect right-click events
             table.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
                     if (SwingUtilities.isRightMouseButton(e)) {
                         int row = table.rowAtPoint(e.getPoint());
-                        int col = table.columnAtPoint(e.getPoint());
                         table.getSelectionModel().setSelectionInterval(row, row);
 
-                        // Create a popup menu with the option to delete the selected row
                         JPopupMenu popupMenu = new JPopupMenu();
                         JMenuItem deleteItem = new JMenuItem("Delete Selected Entry");
-                        deleteItem.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                deleteSelectedRow(table);
-                            }
-                        });
+                        deleteItem.addActionListener(e1 -> deleteSelectedRow(table));
                         popupMenu.add(deleteItem);
 
                         popupMenu.show(table, e.getX(), e.getY());
                     }
                 }
             });
-
-
 
 
             frame.add(new JScrollPane(table), BorderLayout.CENTER);
@@ -127,14 +128,36 @@ public class Main {
 
     }
 
+    private static void exportData(String fileType) {
+        String fileName = promptForFileName();
+        if (fileName != null && !fileName.isEmpty()) {
+            switch (fileType) {
+                case "csv":
+                    ExportDataClass.exportToCSV(ballisticEntries, fileName + ".csv");
+                    break;
+                case "txt":
+                    ExportDataClass.exportToTXT(ballisticEntries, fileName + ".txt");
+                    break;
+                // Add more cases if needed for other file types
+                default:
+                    System.out.println("Invalid file type");
+            }
+        }
+    }
+
+    private static String promptForFileName() {
+        return JOptionPane.showInputDialog(null, "Enter file name:", "File Name", JOptionPane.QUESTION_MESSAGE);
+    }
+
     public static void main(String[] args) {
         initUI();
     }
 
     private static void updateInformation() {
+
         int numRows = tableModel.getRowCount();
         infoLabel.setText("Ballistic Entries: " + numRows);
-        SwingWorker<Double, Void> workerES = new SwingWorker<Double, Void>() {
+        SwingWorker<Double, Void> workerES = new SwingWorker<>() {
             @Override
             protected Double doInBackground() throws Exception {
                 return EquationCalculator.computeExtremeSpread(ballisticEntries);
@@ -144,16 +167,36 @@ public class Main {
             protected void done() {
                 try {
                     double extremeSpread = get();
-                    esLabel.setText("Extreme Spread: " + extremeSpread + "mm");
+                    esLabel.setText("Extreme Spread: " + extremeSpread + " mm");
                 } catch (Exception e) {
-                    e.printStackTrace(); // Handle exception
+                    esLabel.setText("Extreme Spread: 0 mm");
+                }
+            }
+        };
+        SwingWorker<Double, Void> workerAD = new SwingWorker<>() {
+            @Override
+            protected Double doInBackground() throws Exception {
+                return EquationCalculator.computeAverageDeviation(ballisticEntries);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double averageDeviation = get();
+                    stdLabel.setText("Average Deviation: " + averageDeviation + " mm");
+                } catch (Exception e) {
+                    stdLabel.setText("Average Deviation: 0 mm");
                 }
             }
         };
         workerES.execute();
-        //esLabel.setText("Extreme Spread: " + EquationCalculator.computeExtremeSpread(ballisticEntries) + "mm");
-        stdLabel.setText("Standard Deviation: " + EquationCalculator.computeStandardDerivation(ballisticEntries) + "mm");
+        workerAD.execute();
+        try {
+            //esLabel.setText("Extreme Spread: " + EquationCalculator.computeExtremeSpread(ballisticEntries) + "mm");
 
+        } catch (Exception e) {
+            e.printStackTrace(); // Handle exception
+        }
     }
 
     private static void addNewRow() {
@@ -174,6 +217,22 @@ public class Main {
         updateInformation();
         drawingPanel.repaint();
     }
+
+    private static Color calculateColor(int shotOrder, int lastAddedShotOrder) {
+        // Calculate color based on the shot order and the last added shot order
+        int maxShots = 6; // Adjust as needed
+        float minHue = 0.0f; // Red
+        float maxHue = 0.66f; // Blue
+
+        // Calculate the difference between the shot order and the last added shot order
+        int shotDifference = (shotOrder - lastAddedShotOrder + maxShots) % maxShots;
+
+        float hue = minHue - ((float) shotDifference / maxShots) * (maxHue - minHue);
+        if (hue > -0.1 && shotOrder != lastAddedShotOrder)
+            hue = (float) -0.1;
+        return Color.getHSBColor(hue, 1.0f, 1.0f);
+    }
+
     private static class DrawingPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g) {
@@ -192,14 +251,25 @@ public class Main {
             // Horizontal line
             g.drawLine(0, centerY, getWidth(), centerY);
 
-            //TODO Circumscribed Circle - In progress
-            ArrayList<Float> circumscribedCircle = EquationCalculator.getCircumscribedCircle(ballisticEntries);
+            ArrayList<Float> circumscribedCircle = null;
+            try {
+                circumscribedCircle = EquationCalculator.getCircumscribedCircle(ballisticEntries);
+            } catch (NullListException ignored) {
+            }
+            try {
+                assert circumscribedCircle != null;
+                if (!circumscribedCircle.isEmpty()) {
+                    g.setColor(Color.ORANGE);
+                    g.drawOval(
+                            Math.round((float) getWidth() / 2 + circumscribedCircle.get(0) - circumscribedCircle.get(2)),
+                            Math.round((float) getHeight() / 2 - circumscribedCircle.get(1) - circumscribedCircle.get(2)),
+                            Math.round(circumscribedCircle.get(2) * 2),
+                            Math.round(circumscribedCircle.get(2) * 2));
+                }
 
-            if (!circumscribedCircle.isEmpty())
-                g.drawOval(Math.round((float)getWidth() / 2 + circumscribedCircle.get(0)),
-                        Math.round((float)getHeight() / 2 - circumscribedCircle.get(2) + circumscribedCircle.get(1)),
-                        Math.round(circumscribedCircle.get(2) * 2), Math.round(circumscribedCircle.get(2) * 2));
-
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             // Draw mini red circles based on table coordinates
             int numRows = tableModel.getRowCount();
             int lastAddedShotOrder = numRows - 1;
@@ -223,20 +293,5 @@ public class Main {
         public Dimension getPreferredSize() {
             return new Dimension(500, 500); // Set a preferred size for the panel
         }
-    }
-
-    private static Color calculateColor(int shotOrder, int lastAddedShotOrder) {
-        // Calculate color based on the shot order and the last added shot order
-        int maxShots = 6; // Adjust as needed
-        float minHue = 0.0f; // Red
-        float maxHue = 0.66f; // Blue
-
-        // Calculate the difference between the shot order and the last added shot order
-        int shotDifference = (shotOrder - lastAddedShotOrder + maxShots) % maxShots;
-
-        float hue = minHue - ((float) shotDifference / maxShots) * (maxHue - minHue);
-        if (hue > -0.1 && shotOrder != lastAddedShotOrder)
-            hue = (float) -0.1;
-        return Color.getHSBColor(hue, 1.0f, 1.0f);
     }
 }

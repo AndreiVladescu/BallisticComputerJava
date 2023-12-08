@@ -1,66 +1,51 @@
 package org.example;
 
+import org.javatuples.Pair;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.javatuples.Pair; // Import the necessary class from the javatuples library
 
 public class EquationCalculator {
     /*TODO*/
-    public static double computeCircularErrorProbable(List<Pair<Float, Float>> ballisticEntries)
-    {
+    public static double computeCircularErrorProbable(List<Pair<Float, Float>> ballisticEntries) {
         return 0;
     }
+
     /*TODO*/
-    public static double computeRadialStandardDerivation(List<Pair<Float, Float>> ballisticEntries)
-    {
+    public static double computeRadialStandardDerivation(List<Pair<Float, Float>> ballisticEntries) {
         return 0;
     }
-    /*TODO*/
-    public static double computeStandardDerivation(List<Pair<Float, Float>> ballisticEntries)
-    {
+
+    public static double computeAverageDeviation(List<Pair<Float, Float>> ballisticEntries) throws InsufficientValuesException, NullListException {
         if (ballisticEntries.size() < 2)
-            return 0.0;
-        double standardDerivation = 0;
+            throw new InsufficientValuesException();
 
-        float sumX = 0;
-        float sumY = 0;
-        for (Pair<Float, Float> point : ballisticEntries) {
-            sumX += point.getValue0();
-            sumY += point.getValue1();
-        }
+        Pair<Double, Double> mean = computeMean(ballisticEntries);
 
-        float centroidX = sumX / ballisticEntries.size();
-        float centroidY = sumY / ballisticEntries.size();
+        double sum = ballisticEntries.stream()
+                .mapToDouble(entry -> Math.abs(entry.getValue0() - mean.getValue0()) +
+                        Math.abs(entry.getValue1() - mean.getValue1()))
+                .sum();
 
-        // Calculate the sum of squared differences
-        double sumOfSquaredDifferences = 0.0;
-
-        for (Pair<Float, Float> point : ballisticEntries) {
-            float distance = (float) calculateDistance(point, Pair.with(centroidX, centroidY));
-            float difference = (float) (distance - computeExtremeSpread(ballisticEntries));
-            sumOfSquaredDifferences += difference * difference;
-        }
-
-        // Calculate the variance and return the square root as standard deviation
-        standardDerivation = sumOfSquaredDifferences / (ballisticEntries.size() - 1);
-
-        return round(standardDerivation,4);
+        return round(sum / ballisticEntries.size(), 3);
     }
-    /* Stream Calculations */
-    public static double computeExtremeSpread(List<Pair<Float, Float>> ballisticEntries) {
+
+    public static double computeExtremeSpread(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
         if (ballisticEntries.isEmpty())
-            return 0.0;
+            throw new NullListException();
 
         return round(ballisticEntries.stream()
                 .flatMap(i -> ballisticEntries.stream()
                         .filter(j -> !i.equals(j))
-                        .map(j -> calculateDistance(i, j)))
+                        .map(j -> computeDistance(i, j)))
                 .max(Double::compare)
-                .orElse(0.0),3) ;
-    }public static ArrayList<Float> getCircumscribedCircle(List<Pair<Float, Float>> ballisticEntries) {
+                .orElse(0.0), 3);
+    }
+
+    public static ArrayList<Float> getCircumscribedCircle(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
         if (ballisticEntries.isEmpty())
-            return new ArrayList<>();
+            throw new NullListException();
 
         double maxDist = 0;
         int point1 = 0, point2 = 0;
@@ -78,10 +63,8 @@ public class EquationCalculator {
         }
 
         float x, y, radius;
-        //x = (ballisticEntries.get(point1).getValue0() + ballisticEntries.get(point2).getValue0()) / 2;
-        x = Math.min(ballisticEntries.get(point2).getValue0(), ballisticEntries.get(point1).getValue0());
-        //y = (ballisticEntries.get(point1).getValue1() + ballisticEntries.get(point2).getValue1()) / 2;
-        y = Math.min(ballisticEntries.get(point2).getValue1(), ballisticEntries.get(point1).getValue1());
+        x = (ballisticEntries.get(point1).getValue0() + ballisticEntries.get(point2).getValue0()) / 2;
+        y = (ballisticEntries.get(point1).getValue1() + ballisticEntries.get(point2).getValue1()) / 2;
         radius = (float) (maxDist / 2);
         return new ArrayList<>(Arrays.asList(x, y, radius));
     }
@@ -89,16 +72,35 @@ public class EquationCalculator {
 
     /* Helper Functions */
     private static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
+        if (places < 0)
+            throw new IllegalArgumentException();
 
         long factor = (long) Math.pow(10, places);
         value = value * factor;
         long tmp = Math.round(value);
         return (double) tmp / factor;
     }
-    private static double calculateDistance(Pair<Float, Float> point1, Pair<Float, Float> point2) {
+
+    private static double computeDistance(Pair<Float, Float> point1, Pair<Float, Float> point2) {
         float deltaX = point1.getValue0() - point2.getValue0();
         float deltaY = point1.getValue1() - point2.getValue1();
         return (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+
+    private static Pair<Double, Double> computeMean(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
+        if (ballisticEntries.isEmpty())
+            throw new NullListException();
+
+        double meanX = ballisticEntries.stream()
+                .mapToDouble(Pair::getValue0)
+                .average()
+                .orElse(0.0);
+
+        double meanY = ballisticEntries.stream()
+                .mapToDouble(Pair::getValue1)
+                .average()
+                .orElse(0.0);
+
+        return new Pair<>(meanX, meanY);
     }
 }
