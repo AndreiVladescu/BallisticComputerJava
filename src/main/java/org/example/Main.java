@@ -7,8 +7,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -23,6 +21,8 @@ public class Main {
     private static JLabel infoLabel;
     private static JLabel esLabel;
     private static JLabel stdLabel;
+    private static JLabel rsdLabel;
+    private static JLabel cepLabel;
     private static JButton addRowButton;
     private static JButton deleteRowButton;
     private static JButton exportToCSVButton;
@@ -63,6 +63,8 @@ public class Main {
             infoLabel = new JLabel("Ballistic Entries: 0");
             esLabel = new JLabel("Extreme spread: 0.0 mm");
             stdLabel = new JLabel("Average Deviation: 0.0 mm");
+            rsdLabel = new JLabel("Radial Standard Deviation: 0.0 mm");
+            cepLabel = new JLabel("Circular Error Probable: 0.0 mm");
 
             int labelVerticalSpacing = 4;
             EmptyBorder labelBorder = new EmptyBorder(labelVerticalSpacing, 0, labelVerticalSpacing, 0);
@@ -70,10 +72,14 @@ public class Main {
             infoLabel.setBorder(labelBorder);
             esLabel.setBorder(labelBorder);
             stdLabel.setBorder(labelBorder);
+            rsdLabel.setBorder(labelBorder);
+            cepLabel.setBorder(labelBorder);
 
             leftPanel.add(infoLabel);
             leftPanel.add(esLabel);
             leftPanel.add(stdLabel);
+            leftPanel.add(rsdLabel);
+            leftPanel.add(cepLabel);
 
             addRowButton = new JButton("Add New Entry");
             addRowButton.addActionListener(e -> addNewRow());
@@ -189,14 +195,45 @@ public class Main {
                 }
             }
         };
+        SwingWorker<Double, Void> workerRSD = new SwingWorker<>() {
+            @Override
+            protected Double doInBackground() throws Exception {
+                return EquationCalculator.computeRadialStandardDeviation(ballisticEntries);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double radialStandardDeviation = get();
+                    rsdLabel.setText("Radial Standard Deviation: " + radialStandardDeviation + " mm");
+                } catch (Exception e) {
+                    rsdLabel.setText("Radial Standard Deviation: 0 mm");
+                }
+            }
+        };
+        SwingWorker<Double, Void> workerCEP = new SwingWorker<>() {
+            @Override
+            protected Double doInBackground() throws Exception {
+                return EquationCalculator.computeCircularErrorProbable(ballisticEntries);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double circularErrorProbable = get();
+                    cepLabel.setText("Circular Error Probable: " + circularErrorProbable + " mm");
+                } catch (Exception e) {
+                    cepLabel.setText("Circular Error Probable: 0 mm");
+                }
+            }
+        };
+
         workerES.execute();
         workerAD.execute();
-        try {
-            //esLabel.setText("Extreme Spread: " + EquationCalculator.computeExtremeSpread(ballisticEntries) + "mm");
+        workerRSD.execute();
+        workerCEP.execute();
 
-        } catch (Exception e) {
-            e.printStackTrace(); // Handle exception
-        }
+
     }
 
     private static void addNewRow() {
@@ -219,12 +256,10 @@ public class Main {
     }
 
     private static Color calculateColor(int shotOrder, int lastAddedShotOrder) {
-        // Calculate color based on the shot order and the last added shot order
-        int maxShots = 6; // Adjust as needed
-        float minHue = 0.0f; // Red
-        float maxHue = 0.66f; // Blue
+        int maxShots = 6;
+        float minHue = 0.0f;
+        float maxHue = 0.66f;
 
-        // Calculate the difference between the shot order and the last added shot order
         int shotDifference = (shotOrder - lastAddedShotOrder + maxShots) % maxShots;
 
         float hue = minHue - ((float) shotDifference / maxShots) * (maxHue - minHue);
@@ -238,17 +273,14 @@ public class Main {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
 
-            // Draw the large circle (x pixels in diameter)
             int diameter = 200;
             int centerX = getWidth() / 2;
             int centerY = getHeight() / 2;
             g.setColor(Color.BLACK);
             g.drawOval(centerX - diameter / 2, centerY - diameter / 2, diameter, diameter);
 
-            // Vertical line
             g.drawLine(centerX, 0, centerX, getHeight());
 
-            // Horizontal line
             g.drawLine(0, centerY, getWidth(), centerY);
 
             ArrayList<Float> circumscribedCircle = null;
@@ -267,10 +299,9 @@ public class Main {
                             Math.round(circumscribedCircle.get(2) * 2));
                 }
 
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ignored) {
             }
-            // Draw mini red circles based on table coordinates
+
             int numRows = tableModel.getRowCount();
             int lastAddedShotOrder = numRows - 1;
 
@@ -278,9 +309,8 @@ public class Main {
                 float xCoordinate = (float) tableModel.getValueAt(i, 0);
                 float yCoordinate = (float) tableModel.getValueAt(i, 1);
                 int x = centerX + Math.round(xCoordinate);
-                int y = centerY - Math.round(yCoordinate); // Invert y-axis to match coordinate system
+                int y = centerY - Math.round(yCoordinate);
 
-                // Calculate the color based on the shot order
                 Color circleColor = calculateColor(i, lastAddedShotOrder);
 
                 g.setColor(circleColor);
@@ -291,7 +321,7 @@ public class Main {
 
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(500, 500); // Set a preferred size for the panel
+            return new Dimension(500, 500);
         }
     }
 }

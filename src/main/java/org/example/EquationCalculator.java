@@ -7,14 +7,36 @@ import java.util.Arrays;
 import java.util.List;
 
 public class EquationCalculator {
-    /*TODO*/
-    public static double computeCircularErrorProbable(List<Pair<Float, Float>> ballisticEntries) {
-        return 0;
+    public static double computeCircularErrorProbable(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
+        Pair<Double, Double> mean = computeMean(ballisticEntries);
+
+        double[] radialDistances = new double[ballisticEntries.size()];
+        for (int i = 0; i < ballisticEntries.size(); i++) {
+            Pair<Float, Float> entry = ballisticEntries.get(i);
+            double deltaX = entry.getValue0() - mean.getValue0();
+            double deltaY = entry.getValue1() - mean.getValue1();
+            radialDistances[i] = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        }
+
+        double circularError = computeCircularError(radialDistances);
+
+        return round(0.845 * circularError, 3); // 0.845 is a constant factor for the standard normal distribution
     }
 
-    /*TODO*/
-    public static double computeRadialStandardDerivation(List<Pair<Float, Float>> ballisticEntries) {
-        return 0;
+    public static double computeRadialStandardDeviation(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
+        Pair<Double, Double> mean = computeMean(ballisticEntries);
+
+        double sumOfSquaredDistances = 0;
+        for (Pair<Float, Float> entry : ballisticEntries) {
+            double deltaX = entry.getValue0() - mean.getValue0();
+            double deltaY = entry.getValue1() - mean.getValue1();
+            double radialDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            sumOfSquaredDistances += radialDistance * radialDistance;
+        }
+
+        double meanSquaredDistance = sumOfSquaredDistances / ballisticEntries.size();
+        System.out.println(Math.sqrt(meanSquaredDistance));
+        return round(Math.sqrt(meanSquaredDistance), 3);
     }
 
     public static double computeAverageDeviation(List<Pair<Float, Float>> ballisticEntries) throws InsufficientValuesException, NullListException {
@@ -102,5 +124,14 @@ public class EquationCalculator {
                 .orElse(0.0);
 
         return new Pair<>(meanX, meanY);
+    }
+
+    private static double computeCircularError(double[] radialDistances) {
+        double sumOfSquaredDistances = 0;
+        for (double radialDistance : radialDistances) {
+            sumOfSquaredDistances += radialDistance * radialDistance;
+        }
+        double meanSquaredDistance = sumOfSquaredDistances / radialDistances.length;
+        return Math.sqrt(meanSquaredDistance);
     }
 }
