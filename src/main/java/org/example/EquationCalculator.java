@@ -7,6 +7,56 @@ import java.util.Arrays;
 import java.util.List;
 
 public class EquationCalculator {
+    public static double computeProbabilityOfHit(List<Pair<Float, Float>> ballisticEntries, double targetRadius) throws DivisionByZeroException {
+        int numHits = countHits(ballisticEntries, targetRadius);
+        int totalShots = ballisticEntries.size();
+
+        if (totalShots == 0) {
+            throw new DivisionByZeroException();
+        }
+
+        return round((double) numHits / totalShots * 100, 2);
+    }
+
+    private static int countHits(List<Pair<Float, Float>> ballisticEntries, double targetRadius) {
+        int numHits = 0;
+        for (Pair<Float, Float> entry : ballisticEntries) {
+            double distanceToTarget = computeDistanceToTarget(entry);
+            if (distanceToTarget <= targetRadius) {
+                numHits++;
+            }
+        }
+        return numHits;
+    }
+
+    private static double computeDistanceToTarget(Pair<Float, Float> entry) {
+        double deltaX = entry.getValue0();
+        double deltaY = entry.getValue1();
+        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+
+    public static double computeVerticalDispersion(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
+        Pair<Double, Double> mean = computeMean(ballisticEntries);
+        double sumOfSquaredVerticalDistances = 0;
+        for (Pair<Float, Float> entry : ballisticEntries) {
+            double deltaY = entry.getValue1() - mean.getValue1();
+            sumOfSquaredVerticalDistances += deltaY * deltaY;
+        }
+        double meanSquaredVerticalDistance = sumOfSquaredVerticalDistances / ballisticEntries.size();
+        return round(Math.sqrt(meanSquaredVerticalDistance), 3);
+    }
+
+    public static double computeHorizontalDispersion(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
+        Pair<Double, Double> mean = computeMean(ballisticEntries);
+        double sumOfSquaredHorizontalDistances = 0;
+        for (Pair<Float, Float> entry : ballisticEntries) {
+            double deltaX = entry.getValue0() - mean.getValue0();
+            sumOfSquaredHorizontalDistances += deltaX * deltaX;
+        }
+        double meanSquaredHorizontalDistance = sumOfSquaredHorizontalDistances / ballisticEntries.size();
+        return round(Math.sqrt(meanSquaredHorizontalDistance), 3);
+    }
+
     public static double computeCircularErrorProbable(List<Pair<Float, Float>> ballisticEntries) throws NullListException {
         Pair<Double, Double> mean = computeMean(ballisticEntries);
 
@@ -35,7 +85,6 @@ public class EquationCalculator {
         }
 
         double meanSquaredDistance = sumOfSquaredDistances / ballisticEntries.size();
-        System.out.println(Math.sqrt(meanSquaredDistance));
         return round(Math.sqrt(meanSquaredDistance), 3);
     }
 

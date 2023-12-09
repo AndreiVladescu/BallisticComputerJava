@@ -23,6 +23,9 @@ public class Main {
     private static JLabel stdLabel;
     private static JLabel rsdLabel;
     private static JLabel cepLabel;
+    private static JLabel vdLabel;
+    private static JLabel hdLabel;
+    private static JLabel phLabel;
     private static JButton addRowButton;
     private static JButton deleteRowButton;
     private static JButton exportToCSVButton;
@@ -65,6 +68,9 @@ public class Main {
             stdLabel = new JLabel("Average Deviation: 0.0 mm");
             rsdLabel = new JLabel("Radial Standard Deviation: 0.0 mm");
             cepLabel = new JLabel("Circular Error Probable: 0.0 mm");
+            vdLabel = new JLabel("Vertical Dispersion: 0.0 mm");
+            hdLabel = new JLabel("Horizontal Dispersion: 0.0 mm");
+            phLabel = new JLabel("Probability of Hit: 100 %");
 
             int labelVerticalSpacing = 4;
             EmptyBorder labelBorder = new EmptyBorder(labelVerticalSpacing, 0, labelVerticalSpacing, 0);
@@ -74,12 +80,18 @@ public class Main {
             stdLabel.setBorder(labelBorder);
             rsdLabel.setBorder(labelBorder);
             cepLabel.setBorder(labelBorder);
+            vdLabel.setBorder(labelBorder);
+            hdLabel.setBorder(labelBorder);
+            phLabel.setBorder(labelBorder);
 
             leftPanel.add(infoLabel);
             leftPanel.add(esLabel);
             leftPanel.add(stdLabel);
             leftPanel.add(rsdLabel);
             leftPanel.add(cepLabel);
+            leftPanel.add(vdLabel);
+            leftPanel.add(hdLabel);
+            leftPanel.add(phLabel);
 
             addRowButton = new JButton("Add New Entry");
             addRowButton.addActionListener(e -> addNewRow());
@@ -227,13 +239,62 @@ public class Main {
                 }
             }
         };
+        SwingWorker<Double, Void> workerVD = new SwingWorker<>() {
+            @Override
+            protected Double doInBackground() throws Exception {
+                return EquationCalculator.computeVerticalDispersion(ballisticEntries);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double verticalDispersion = get();
+                    vdLabel.setText("Vertical Dispersion: " + verticalDispersion + " mm");
+                } catch (Exception e) {
+                    vdLabel.setText("Vertical Dispersion: 0 mm");
+                }
+            }
+        };
+        SwingWorker<Double, Void> workerHD = new SwingWorker<>() {
+            @Override
+            protected Double doInBackground() throws Exception {
+                return EquationCalculator.computeHorizontalDispersion(ballisticEntries);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double horizontalDispersion = get();
+                    hdLabel.setText("Horizontal Dispersion: " + horizontalDispersion + " mm");
+                } catch (Exception e) {
+                    hdLabel.setText("Horizontal: 0 mm");
+                }
+            }
+        };
+        SwingWorker<Double, Void> workerPH = new SwingWorker<>() {
+            @Override
+            protected Double doInBackground() throws Exception {
+                return EquationCalculator.computeProbabilityOfHit(ballisticEntries, 100);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double probabilityOfHit = get();
+                    phLabel.setText("Probability of Hit: " + probabilityOfHit + " %");
+                } catch (Exception e) {
+                    phLabel.setText("Probability of Hit: 100 %");
+                }
+            }
+        };
 
         workerES.execute();
         workerAD.execute();
         workerRSD.execute();
         workerCEP.execute();
-
-
+        workerVD.execute();
+        workerHD.execute();
+        workerPH.execute();
     }
 
     private static void addNewRow() {
