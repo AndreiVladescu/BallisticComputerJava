@@ -142,7 +142,7 @@ public class EquationCalculator {
 
 
     /* Helper Functions */
-    private static double round(double value, int places) {
+    static double round(double value, int places) {
         if (places < 0)
             throw new IllegalArgumentException();
 
