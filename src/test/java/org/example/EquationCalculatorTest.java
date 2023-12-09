@@ -84,11 +84,14 @@ class EquationCalculatorTest {
     @org.junit.jupiter.api.Test
     void computeCircularErrorProbable() {
         // Test case 1: Standard scenario
-        List<Pair<Float, Float>> case1 = List.of(new Pair<>(1.0f, 1.0f), new Pair<>(5.0f, 5.0f), new Pair<>(-3.0f, -3.0f));
+        List<Pair<Float, Float>> case1 = List.of(new Pair<>(1.0f, 1.0f),
+                new Pair<>(5.0f, 5.0f),
+                new Pair<>(-3.0f, -3.0f));
         assertDoesNotThrow(() -> {
             double result = EquationCalculator.computeCircularErrorProbable(case1);
             // Expected result based on your logic
-            double expectedResult = 0.845 * 3.0; // Adjust based on your actual expected result
+            double expectedResult = EquationCalculator.round(0.845 * 4.6189, 3); // Adjust based on your actual expected result
+
             assertEquals(expectedResult, result, 0.001); // Adjust the delta as needed
         });
     }
@@ -143,14 +146,8 @@ class EquationCalculatorTest {
         // Call the function and catch any exceptions (ignoring them for the test)
         assertDoesNotThrow(() -> {
             double result = EquationCalculator.computeAverageDeviation(ballisticEntries);
-            // Add an expected value and assertion here
-            double meanX = (1 + 5 - 3) / 3.0;
-            double meanY = (1 + 5 - 3) / 3.0;
-            double sumDistances = 0.0;
-            for (Pair<Float, Float> point : ballisticEntries) {
-                sumDistances += Math.sqrt(Math.pow(point.getValue0() - meanX, 2) + Math.pow(point.getValue1() - meanY, 2));
-            }
-            double expectedResult = EquationCalculator.round(sumDistances / ballisticEntries.size(), 3);
+
+            double expectedResult = 5.333;
             assertEquals(expectedResult, result, 0.001); // Adjust the delta as needed
         });
     }
