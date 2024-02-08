@@ -44,7 +44,6 @@ public class Main {
 
             table = new JTable(tableModel);
 
-            // Add listener for table model changes
             tableModel.addTableModelListener(e -> {
                 if (e.getType() == TableModelEvent.INSERT) {
                     int row = e.getFirstRow();
