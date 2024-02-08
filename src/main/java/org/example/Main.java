@@ -270,7 +270,7 @@ public class Main {
                 }
             }
         };
-        SwingWorker<Double, Void> workerPH = new SwingWorker<>() {
+        SwingWorker<Double, Void> workerPoH = new SwingWorker<>() {
             @Override
             protected Double doInBackground() throws Exception {
                 return EquationCalculator.computeProbabilityOfHit(ballisticEntries, 100);
@@ -293,7 +293,7 @@ public class Main {
         workerCEP.execute();
         workerVD.execute();
         workerHD.execute();
-        workerPH.execute();
+        workerPoH.execute();
     }
 
     private static void addNewRow() {
